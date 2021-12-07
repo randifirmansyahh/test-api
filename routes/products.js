@@ -6,6 +6,11 @@ const v = new Validator();
 
 const { Product } = require("../models");
 
+router.get("/", async (req, res) => {
+  const products = await Product.findAll();
+  res.json(products);
+});
+
 router.post("/", async (req, res) => {
   const schema = {
     name: "string",
