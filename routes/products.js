@@ -11,6 +11,12 @@ router.get("/", async (req, res) => {
   res.json(products);
 });
 
+router.get("/:id", async (req, res) => {
+  const id = req.params.id;
+  const product = await Product.findByPk(id);
+  res.json(product);
+});
+
 router.post("/", async (req, res) => {
   const schema = {
     name: "string",
