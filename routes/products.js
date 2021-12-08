@@ -1,6 +1,7 @@
 var express = require("express");
 var router = express.Router();
 const Validator = require("fastest-validator");
+var aes256 = require("aes256");
 
 const v = new Validator();
 
@@ -21,8 +22,12 @@ let count = 0;
 let isLimited = false;
 const messageLimited = {
   error: 429,
-  message: `API rate limit exceeded`,
-  command: `Please wait 1 minute`,
+  message: ecnryptAes256("API rate limit exceeded"),
+  command: ecnryptAes256("Please wait 1 minute"),
+};
+const messageNotFound = {
+  error: 404,
+  message: "Data not found",
 };
 
 // Throttling check
@@ -62,6 +67,37 @@ const cache = async () => {
   return null;
 };
 
+// AES-256
+function ecnryptAes256(params) {
+  if (params) {
+    var key = APIKey;
+    var cipher = aes256.createCipher(key);
+    var encryptedPlainText = cipher.encrypt(params.toString());
+    return encryptedPlainText;
+  }
+}
+
+// Object Encryptor
+function ObjectEncryptor(params) {
+  try {
+    var data = [];
+    for (var i in params) {
+      data.push(params[i]);
+    }
+    data = data.map((item) => {
+      const container = {};
+      container["id"] = ecnryptAes256(item.id);
+      container["name"] = ecnryptAes256(item.name);
+      container["brand"] = ecnryptAes256(item.brand);
+      container["description"] = ecnryptAes256(item.description);
+      return container;
+    });
+    return { data: data };
+  } catch (error) {
+    return messageNotFound;
+  }
+}
+
 // getAll
 router.get("/", async (req, res) => {
   if (checkIsLimit()) res.json(messageLimited);
@@ -71,9 +107,9 @@ router.get("/", async (req, res) => {
       res.json(cacheEntry);
     } else {
       const products = await Product.findAll();
-      redis.set("key:products", JSON.stringify(products));
+      redis.set("key:products", JSON.stringify(ObjectEncryptor(products)));
       cache();
-      res.json(products);
+      res.json(ObjectEncryptor(products));
     }
   }
 });
@@ -84,7 +120,7 @@ router.get("/:id", async (req, res) => {
   else {
     const id = req.params.id;
     const product = await Product.findByPk(id);
-    res.json(product);
+    res.json(ObjectEncryptor({ product }));
   }
 });
 
