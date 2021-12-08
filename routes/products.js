@@ -6,17 +6,46 @@ const v = new Validator();
 
 const { Product } = require("../models");
 
-router.get("/", async (req, res) => {
-  const products = await Product.findAll();
-  res.json(products);
+// using redis
+const Redis = require("ioredis");
+const redis = new Redis({
+  host: "127.0.0.1",
+  port: 6379,
 });
 
+// variable caches
+let cacheEntry;
+
+// check cache
+const cache = async () => {
+  cacheEntry = await redis.get(`key:products`);
+
+  if (cacheEntry) {
+    return (cacheEntry = JSON.parse(cacheEntry));
+  }
+  return null;
+};
+
+// getAll
+router.get("/", async (req, res) => {
+  if (cacheEntry != null) {
+    res.json(cacheEntry);
+  } else {
+    const products = await Product.findAll();
+    redis.set("key:products", JSON.stringify(products));
+    cache();
+    res.json(products);
+  }
+});
+
+// getByID
 router.get("/:id", async (req, res) => {
   const id = req.params.id;
   const product = await Product.findByPk(id);
   res.json(product);
 });
 
+// Create
 router.post("/", async (req, res) => {
   const schema = {
     name: "string",
@@ -35,6 +64,7 @@ router.post("/", async (req, res) => {
   res.json(product);
 });
 
+// Update
 router.put("/:id", async (req, res) => {
   const id = req.params.id;
 
@@ -63,6 +93,7 @@ router.put("/:id", async (req, res) => {
   res.json(product);
 });
 
+// Delete
 router.delete("/:id", async (req, res) => {
   const id = req.params.id;
 
