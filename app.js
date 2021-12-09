@@ -6,6 +6,7 @@ var logger = require("morgan");
 
 var indexRouter = require("./routes/index");
 var productsRouter = require("./routes/products");
+var interService = require("./routes/interService");
 
 var app = express();
 
@@ -13,9 +14,9 @@ app.use(logger("dev"));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
-app.use(express.static(path.join(__dirname, "public")));
 
 app.use("/", indexRouter);
 app.use("/products", productsRouter);
+app.use("/interservice", interService);
 
 module.exports = app;
